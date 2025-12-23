@@ -5,6 +5,8 @@ import (
 	"log"
 )
 
+//pelajari integrasi ENV
+
 func ConnectDB() (*sql.DB, error) {
 	dsn := "root:@tcp(127.0.0.1:3306)/newsapp"
 

@@ -13,6 +13,7 @@ func main() {
 
 	app.Get("/news", handlers.GetNews)
 	app.Post("/news", handlers.CreateNews)
+	app.Put("/news/:id", handlers.UpdateNews)
 
 	log.Fatal(app.Listen(":8080"))
 }
