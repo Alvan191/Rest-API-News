@@ -32,11 +32,29 @@ func CreateNews(c *fiber.Ctx) error {
 	}
 
 	db, _ := config.ConnectDB()
-	db.Exec("INSERT INTO news (title, content) VALUES (?, ?)", news.Title, news.Content)
+	result, err := db.Exec("INSERT INTO news (title, content) VALUES (?, ?)", news.Title, news.Content)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"error": "failed insert data",
+		})
+	}
 
-	return c.Status(201).JSON(fiber.Map{
-		"message": "News created successfully",
-	})
+	id, _ := result.LastInsertId() //mengambil data id terakhir
+
+	var CreatedNews models.News
+	err = db.QueryRow("SELECT id, title, content, created_at FROM news WHERE id = ?", id).Scan(
+		&CreatedNews.ID,
+		&CreatedNews.Title,
+		&CreatedNews.Content,
+		&CreatedNews.CreatedAt,
+	)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"error": "failed to fetch created data",
+		})
+	}
+
+	return c.Status(201).JSON(CreatedNews)
 }
 
 func UpdateNews(c *fiber.Ctx) error {
@@ -59,7 +77,18 @@ func UpdateNews(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.Status(200).JSON(fiber.Map{
-		"message": "News update successfully",
-	})
+	var updatedNews models.News
+	err := db.QueryRow("SELECT id, title, content, created_at FROM news WHERE id = ?", id).Scan(
+		&updatedNews.ID,
+		&updatedNews.Title,
+		&updatedNews.Content,
+		&updatedNews.CreatedAt,
+	)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"error": "failed to fetch update news",
+		})
+	}
+
+	return c.Status(200).JSON(updatedNews)
 }
