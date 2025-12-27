@@ -12,6 +12,7 @@ func main() {
 	app := fiber.New()
 
 	app.Get("/news", handlers.GetNews)
+	app.Get("/news/:id", handlers.GetNews)
 	app.Post("/news", handlers.CreateNews)
 	app.Put("/news/:id", handlers.UpdateNews)
 

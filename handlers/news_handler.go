@@ -10,7 +10,26 @@ import (
 //Instalasi GORM dan pelajari hal ini
 
 func GetNews(c *fiber.Ctx) error {
+	id := c.Params("id")
 	db, _ := config.ConnectDB()
+
+	if id != "" {
+		var news models.News
+		err := db.QueryRow("SELECT id, title, content, created_at FROM news WHERE id = ?", id).Scan(
+			&news.ID,
+			&news.Title,
+			&news.Content,
+			&news.CreatedAt,
+		)
+		if err != nil {
+			return c.Status(404).JSON(fiber.Map{
+				"error": "tidak dapat mengambil data id",
+			})
+		}
+
+		return c.JSON(news)
+	}
+
 	rows, _ := db.Query("SELECT id, title, content, created_at FROM news")
 
 	var news []models.News
