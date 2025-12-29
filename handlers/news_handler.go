@@ -54,7 +54,7 @@ func CreateNews(c *fiber.Ctx) error {
 
 func UpdateNews(c *fiber.Ctx) error {
 	now := time.Now().UTC()
-	id := c.Params("id") // ✅ ambil id dari URL
+	id := c.Params("id")
 
 	var news models.News
 	if err := config.DB.First(&news, id).Error; err != nil {

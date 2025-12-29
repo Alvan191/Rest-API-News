@@ -9,3 +9,5 @@ type News struct {
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt *time.Time `gorm:"<-:update" json:"updated_at"`
 }
+
+//migration -> automigrate atau migrator
