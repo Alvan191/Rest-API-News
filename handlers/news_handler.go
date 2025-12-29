@@ -7,38 +7,23 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-//Instalasi GORM dan pelajari hal ini
-
 func GetNews(c *fiber.Ctx) error {
 	id := c.Params("id")
-	db, _ := config.ConnectDB()
 
 	if id != "" {
 		var news models.News
-		err := db.QueryRow("SELECT id, title, content, created_at FROM news WHERE id = ?", id).Scan(
-			&news.ID,
-			&news.Title,
-			&news.Content,
-			&news.CreatedAt,
-		)
-		if err != nil {
+		result := config.DB.First(&news, id)
+
+		if result.Error != nil {
 			return c.Status(404).JSON(fiber.Map{
 				"error": "tidak dapat mengambil data id",
 			})
 		}
-
 		return c.JSON(news)
 	}
 
-	rows, _ := db.Query("SELECT id, title, content, created_at FROM news")
-
 	var news []models.News
-	for rows.Next() {
-		var n models.News
-		rows.Scan(&n.ID, &n.Title, &n.Content, &n.CreatedAt)
-		news = append(news, n)
-	}
-
+	config.DB.Find(&news)
 	return c.JSON(news)
 }
 
@@ -50,30 +35,21 @@ func CreateNews(c *fiber.Ctx) error {
 		})
 	}
 
-	db, _ := config.ConnectDB()
-	result, err := db.Exec("INSERT INTO news (title, content) VALUES (?, ?)", news.Title, news.Content)
-	if err != nil {
-		return c.Status(500).JSON(fiber.Map{
-			"error": "failed insert data",
+	if news.Title == "" || news.Content == "" {
+		return c.Status(400).JSON(fiber.Map{
+			"error": "data title atau content tidak boleh kosong",
 		})
 	}
 
-	id, _ := result.LastInsertId() //mengambil data id terakhir
+	result := config.DB.Create(&news)
 
-	var CreatedNews models.News
-	err = db.QueryRow("SELECT id, title, content, created_at FROM news WHERE id = ?", id).Scan(
-		&CreatedNews.ID,
-		&CreatedNews.Title,
-		&CreatedNews.Content,
-		&CreatedNews.CreatedAt,
-	)
-	if err != nil {
+	if result.Error != nil {
 		return c.Status(500).JSON(fiber.Map{
-			"error": "failed to fetch created data",
+			"error": "gagal membuat data",
 		})
 	}
 
-	return c.Status(201).JSON(CreatedNews)
+	return c.Status(201).JSON(news)
 }
 
 func UpdateNews(c *fiber.Ctx) error {
@@ -86,28 +62,43 @@ func UpdateNews(c *fiber.Ctx) error {
 		})
 	}
 
-	db, _ := config.ConnectDB()
-	result, _ := db.Exec("UPDATE news SET title = ?, content = ? WHERE id = ?", news.Title, news.Content, id)
-
-	rows, _ := result.RowsAffected()
-	if rows == 0 {
-		return c.Status(404).JSON(fiber.Map{
-			"error": "News not found",
+	if news.Title == "" && news.Content == "" {
+		return c.Status(400).JSON(fiber.Map{
+			"error": "tidak ada data yang diupdate",
 		})
 	}
+
+	config.DB.Model(&models.News{}).
+		Where("id = ?", id).
+		Updates(map[string]interface{}{
+			"title":   news.Title,
+			"content": news.Content,
+		})
 
 	var updatedNews models.News
-	err := db.QueryRow("SELECT id, title, content, created_at FROM news WHERE id = ?", id).Scan(
-		&updatedNews.ID,
-		&updatedNews.Title,
-		&updatedNews.Content,
-		&updatedNews.CreatedAt,
-	)
-	if err != nil {
-		return c.Status(500).JSON(fiber.Map{
-			"error": "failed to fetch update news",
+	config.DB.First(&updatedNews, id)
+
+	return c.Status(200).JSON(updatedNews)
+}
+
+func DeleteNews(c *fiber.Ctx) error {
+	id := c.Params("id")
+
+	result := config.DB.Delete(&models.News{}, id)
+
+	if result.RowsAffected == 0 {
+		return c.Status(404).JSON(fiber.Map{
+			"error": "news not found",
 		})
 	}
 
-	return c.Status(200).JSON(updatedNews)
+	if result.Error != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"error": "failed to delete news",
+		})
+	}
+
+	return c.Status(200).JSON(fiber.Map{
+		"message": "news deleted successfully",
+	})
 }
