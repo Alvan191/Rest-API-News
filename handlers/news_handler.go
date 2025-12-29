@@ -3,6 +3,7 @@ package handlers
 import (
 	"Rest-API-NewsApp/config"
 	"Rest-API-NewsApp/models"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -35,14 +36,13 @@ func CreateNews(c *fiber.Ctx) error {
 		})
 	}
 
-	if news.Title == "" || news.Content == "" {
+	if news.Title == "" || news.Content == "" { //validate
 		return c.Status(400).JSON(fiber.Map{
-			"error": "data title atau content tidak boleh kosong",
+			"error": "data author, title atau content tidak boleh kosong",
 		})
 	}
 
 	result := config.DB.Create(&news)
-
 	if result.Error != nil {
 		return c.Status(500).JSON(fiber.Map{
 			"error": "gagal membuat data",
@@ -53,9 +53,16 @@ func CreateNews(c *fiber.Ctx) error {
 }
 
 func UpdateNews(c *fiber.Ctx) error {
+	now := time.Now().UTC()
 	id := c.Params("id") // ✅ ambil id dari URL
 
 	var news models.News
+	if err := config.DB.First(&news, id).Error; err != nil {
+		return c.Status(404).JSON(fiber.Map{
+			"error": "news not found",
+		})
+	}
+
 	if err := c.BodyParser(&news); err != nil {
 		return c.Status(400).JSON(fiber.Map{
 			"error": "Bad Request",
@@ -68,17 +75,22 @@ func UpdateNews(c *fiber.Ctx) error {
 		})
 	}
 
-	config.DB.Model(&models.News{}).
-		Where("id = ?", id).
-		Updates(map[string]interface{}{
-			"title":   news.Title,
-			"content": news.Content,
-		})
+	news.UpdatedAt = &now
 
-	var updatedNews models.News
-	config.DB.First(&updatedNews, id)
+	if err := config.DB.Save(&news).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "gagal mengupdate news"})
+	}
 
-	return c.Status(200).JSON(updatedNews)
+	// bentuk menggunakan update bukan save
+	// updates := map[string]interface{}{
+	// 	"title":      news.Title,
+	// 	"content":    news.Content,
+	// 	"updated_at": &now,
+	// }
+	// config.DB.Model(&models.News{}).Where("id = ?", id).Updates(updates)
+
+	config.DB.First(&news, id)
+	return c.Status(200).JSON(news)
 }
 
 func DeleteNews(c *fiber.Ctx) error {
