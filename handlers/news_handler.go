@@ -5,8 +5,11 @@ import (
 	"Rest-API-NewsApp/models"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 )
+
+var validate = validator.New()
 
 func GetNews(c *fiber.Ctx) error {
 	id := c.Params("id")
@@ -36,9 +39,9 @@ func CreateNews(c *fiber.Ctx) error {
 		})
 	}
 
-	if news.Title == "" || news.Content == "" { //validate
+	if err := validate.Struct(news); err != nil {
 		return c.Status(400).JSON(fiber.Map{
-			"error": "data author, title atau content tidak boleh kosong",
+			"error": err.Error(),
 		})
 	}
 
@@ -57,11 +60,6 @@ func UpdateNews(c *fiber.Ctx) error {
 	id := c.Params("id")
 
 	var news models.News
-	if err := config.DB.First(&news, id).Error; err != nil {
-		return c.Status(404).JSON(fiber.Map{
-			"error": "news not found",
-		})
-	}
 
 	if err := c.BodyParser(&news); err != nil {
 		return c.Status(400).JSON(fiber.Map{
@@ -69,25 +67,19 @@ func UpdateNews(c *fiber.Ctx) error {
 		})
 	}
 
-	if news.Title == "" && news.Content == "" {
+	if err := validate.Struct(news); err != nil {
 		return c.Status(400).JSON(fiber.Map{
-			"error": "tidak ada data yang diupdate",
+			"error": err.Error(),
 		})
 	}
 
-	news.UpdatedAt = &now
-
-	if err := config.DB.Save(&news).Error; err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": "gagal mengupdate news"})
-	}
-
 	// bentuk menggunakan update bukan save
-	// updates := map[string]interface{}{
-	// 	"title":      news.Title,
-	// 	"content":    news.Content,
-	// 	"updated_at": &now,
-	// }
-	// config.DB.Model(&models.News{}).Where("id = ?", id).Updates(updates)
+	updates := map[string]interface{}{
+		"title":      news.Title,
+		"content":    news.Content,
+		"updated_at": &now,
+	}
+	config.DB.Model(&models.News{}).Where("id = ?", id).Updates(updates)
 
 	config.DB.First(&news, id)
 	return c.Status(200).JSON(news)

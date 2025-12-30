@@ -3,6 +3,7 @@ package main
 import (
 	"Rest-API-NewsApp/config"
 	"Rest-API-NewsApp/handlers"
+	"Rest-API-NewsApp/migration"
 	"log"
 
 	"github.com/gofiber/fiber/v2"
@@ -10,6 +11,7 @@ import (
 
 func main() {
 	config.ConnectDB()
+	migration.MigrateNewsAuthor()
 
 	app := fiber.New()
 
