@@ -10,3 +10,8 @@ type News struct {
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt *time.Time `gorm:"<-:update" json:"updated_at"`
 }
+
+type User struct {
+	ID       int    `gorm:"primaryKey" json:"id"`
+	Username string `json:"username"`
+}
